@@ -39,7 +39,10 @@ public class Renderer
         self.view = MTKView(frame: rect, device: device)
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.green.cgColor
-        view.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+        view.clearColor = MTLClearColor(red:   Double.random(in: 0...1),
+                                        green: Double.random(in: 0...1),
+                                        blue:  Double.random(in: 0...1),
+                                        alpha: 1)
 
         guard let cq = self.device.makeCommandQueue() else
         {
@@ -98,9 +101,21 @@ public class Renderer
         renderEncoder.endEncoding()
         guard let drawable = view.currentDrawable else { fatalError() }
         commandBuffer.present(drawable)
-        commandBuffer.commit()
+        //commandBuffer.commit()
+    }
 
+    public func update()
+    {
+        struct Wrapper { static var i :CGFloat = 0.0 }
+        print("Frame num: \(Wrapper.i)")
+        Wrapper.i = (Wrapper.i + 0.0001).truncatingRemainder(dividingBy: 1.0)
 
+        self.view.layer?.backgroundColor = CGColor(red: Wrapper.i, green: 0, blue: 0, alpha: 1)
+    }
+
+    @objc func updateCallback()
+    {
+        self.update()
     }
 
 }

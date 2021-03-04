@@ -17,7 +17,8 @@ class ViewController : NSViewController
 
 class AppDelegate: NSObject, NSApplicationDelegate
 {
-    private var window: NSWindow?
+    private var window:   NSWindow?
+    private var timer:    Timer?
     private var renderer: Renderer?
 
     // Initialize the app
@@ -52,6 +53,12 @@ class AppDelegate: NSObject, NSApplicationDelegate
         {
             fatalError("NO METAL VIEW")
         }
+
+        self.timer = Timer.scheduledTimer(timeInterval: 0,
+                                          target: self.renderer!,
+                                          selector: #selector(Renderer.updateCallback),
+                                          userInfo: nil,
+                                          repeats: true)
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
