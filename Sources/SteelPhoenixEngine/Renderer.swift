@@ -1,121 +1,104 @@
 import MetalKit
 
-public class Renderer
+public class Renderer : NSObject
 {
     public  var view:          MTKView
-
-    private let device:        MTLDevice
     private let commandQueue:  MTLCommandQueue
     private let pipelineState: MTLRenderPipelineState
+
+    let vertexData: [Float] =
+    [
+         0.0,  1.0, 0.0,
+        -1.0, -1.0, 0.0,
+         1.0, -1.0, 0.0
+    ]
 
     let shader = """
     #include <metal_stdlib>
     using namespace metal;
 
     struct VertexIn {
-    float4 position [[ attribute(0) ]];
+    float4 position;
     };
 
-    vertex float4 vertex_main(const VertexIn vertex_in [[ stage_in ]]) {
-    return vertex_in.position;
+    vertex float4 vertex_main(const device packed_float3* vertex_array [[ buffer(0) ]], unsigned int vid [[ vertex_id ]]) {
+    return float4(vertex_array[vid], 1.0);
     }
 
     fragment float4 fragment_main() {
-    return float4(1, 0, 0, 1);
+    return float4(1, 1, 1, 1);
     }
     """
 
-    public init(w: Int, h: Int)
+    public init(mtkView: MTKView)
     {
-        guard let d = MTLCreateSystemDefaultDevice() else
-        {
-            fatalError("GPU is not supported")
-        }
+        self.view = mtkView
 
-        self.device = d
-
-        let rect = NSRect(x: 0, y: 0, width: w, height: h)
-
-        self.view = MTKView(frame: rect, device: device)
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.green.cgColor
-        view.clearColor = MTLClearColor(red:   Double.random(in: 0...1),
-                                        green: Double.random(in: 0...1),
-                                        blue:  Double.random(in: 0...1),
-                                        alpha: 1)
-
-        guard let cq = self.device.makeCommandQueue() else
+        guard let cq = self.view.device?.makeCommandQueue() else
         {
             fatalError("Could not create command queue")
         }
-
         self.commandQueue = cq
 
-        let allocator = MTKMeshBufferAllocator(device: device)
-        let mdlMesh   = MDLMesh(sphereWithExtent: [0.75, 0.75, 0.75],
-                                segments: [100, 100],
-                                inwardNormals: false,
-                                geometryType: .triangles,
-                                allocator: allocator)
-        let mesh: MTKMesh?
-        do {
-            mesh = try MTKMesh(mesh: mdlMesh, device: device)
-        } catch {
-            fatalError("Failed creating mesh")
-        }
-        if mesh == nil { fatalError("NO MESH") }
-
-        guard let submesh = mesh!.submeshes.first else { fatalError() }
-
-        do
+        guard let library = try! self.view.device?.makeLibrary(source: shader, options: nil) else
         {
-            let library          = try self.device.makeLibrary(source: shader, options: nil)
-            let vertexFunction   = library.makeFunction(name: "vertex_main")
-            let fragmentFunction = library.makeFunction(name: "fragment_main")
-
-            let pipelineDescriptor = MTLRenderPipelineDescriptor()
-            pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-            pipelineDescriptor.vertexFunction                  = vertexFunction
-            pipelineDescriptor.fragmentFunction                = fragmentFunction
-            pipelineDescriptor.vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(mesh!.vertexDescriptor)
-
-            self.pipelineState = try self.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+            fatalError("Shader compiling failed")
         }
-        catch
+        let vertexFunction   = library.makeFunction(name: "vertex_main")
+        let fragmentFunction = library.makeFunction(name: "fragment_main")
+
+        let pipelineDescriptor = MTLRenderPipelineDescriptor()
+        pipelineDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
+        pipelineDescriptor.vertexFunction                  = vertexFunction
+        pipelineDescriptor.fragmentFunction                = fragmentFunction
+
+        guard let ps = try! self.view.device?.makeRenderPipelineState(descriptor: pipelineDescriptor) else
         {
-            fatalError("Shader failed compiling")
+            fatalError("Couldn't create pipeline state")
         }
-
-        guard let commandBuffer = commandQueue.makeCommandBuffer(),
-              let renderPassDescriptor = view.currentRenderPassDescriptor,
-              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
-        else { fatalError() }
-
-        renderEncoder.setRenderPipelineState(pipelineState)
-        renderEncoder.setVertexBuffer(mesh!.vertexBuffers[0].buffer, offset: 0, index: 0)
-        renderEncoder.drawIndexedPrimitives(type: .triangle,
-                                            indexCount: submesh.indexCount,
-                                            indexType: submesh.indexType,
-                                            indexBuffer: submesh.indexBuffer.buffer,
-                                            indexBufferOffset: 0)
-        renderEncoder.endEncoding()
-        guard let drawable = view.currentDrawable else { fatalError() }
-        commandBuffer.present(drawable)
-        //commandBuffer.commit()
+        self.pipelineState = ps
     }
 
     public func update()
     {
-        struct Wrapper { static var i :CGFloat = 0.0 }
-        print("Frame num: \(Wrapper.i)")
-        Wrapper.i = (Wrapper.i + 0.0001).truncatingRemainder(dividingBy: 1.0)
+        struct Wrapper { static var i = 0.0 }
+        Wrapper.i = (Wrapper.i + 0.01).truncatingRemainder(dividingBy: 1.0)
 
-        self.view.layer?.backgroundColor = CGColor(red: Wrapper.i, green: 0, blue: 0, alpha: 1)
+        self.view.clearColor = MTLClearColor(red: Wrapper.i, green: 0, blue: 0, alpha: 1)
+        self.render()
     }
 
-    @objc func updateCallback()
+    func render()
+    {
+        let dataSize       = vertexData.count * MemoryLayout.size(ofValue: vertexData[0])
+        let vertexBuffer   = self.view.device?.makeBuffer(bytes: vertexData, length: dataSize, options: [])
+
+        let commandBuffer  = self.commandQueue.makeCommandBuffer()!
+
+        let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: self.view.currentRenderPassDescriptor!)
+        //commandEncoder?.setViewport(self.viewport)
+        commandEncoder?.setRenderPipelineState(self.pipelineState)
+        commandEncoder?.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        commandEncoder?.drawPrimitives(type: .triangle,
+                                       vertexStart: 0,
+                                       vertexCount: 3,
+                                       instanceCount: 1)
+        commandEncoder?.endEncoding()
+
+        commandBuffer.present(self.view.currentDrawable!)
+        commandBuffer.commit()
+    }
+}
+
+extension Renderer: MTKViewDelegate
+{
+    public func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize)
+    {
+        // TODO
+    }
+
+    public func draw(in view: MTKView)
     {
         self.update()
     }
-
 }

@@ -18,6 +18,7 @@ class ViewController : NSViewController
 class AppDelegate: NSObject, NSApplicationDelegate
 {
     private var window:   NSWindow?
+    private var device:   MTLDevice?
     private var timer:    Timer?
     private var renderer: Renderer?
 
@@ -44,25 +45,24 @@ class AppDelegate: NSObject, NSApplicationDelegate
         window?.contentViewController = ViewController()
         window?.makeKeyAndOrderFront(nil)
 
-        self.renderer = Renderer(w: WIDTH, h: HEIGHT)
+        self.device = MTLCreateSystemDefaultDevice()
+        if device == nil { fatalError("NO GPU") }
+
+        let view = MTKView(frame: rect, device: device)
+        self.renderer = Renderer(mtkView: view)
         if renderer?.view != nil
         {
             window?.contentViewController?.view = renderer!.view
+            view.delegate = renderer
         }
         else
         {
             fatalError("NO METAL VIEW")
         }
-
-        self.timer = Timer.scheduledTimer(timeInterval: 0,
-                                          target: self.renderer!,
-                                          selector: #selector(Renderer.updateCallback),
-                                          userInfo: nil,
-                                          repeats: true)
     }
 
-    func applicationWillTerminate(_ aNotification: Notification) {
+    func applicationWillTerminate(_ aNotification: Notification)
+    {
         // Insert code here to tear down your application
-        print("App cerrada!")
     }
 }
