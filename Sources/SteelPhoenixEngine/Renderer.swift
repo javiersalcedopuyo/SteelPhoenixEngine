@@ -1,5 +1,7 @@
 import MetalKit
 
+let SHADERS_DIR_PATH = "/Sources/Shaders"
+
 public class Renderer : NSObject
 {
     public  var view:          MTKView
@@ -13,23 +15,6 @@ public class Renderer : NSObject
          1.0, -1.0, 0.0
     ]
 
-    let shader = """
-    #include <metal_stdlib>
-    using namespace metal;
-
-    struct VertexIn {
-    float4 position;
-    };
-
-    vertex float4 vertex_main(const device packed_float3* vertex_array [[ buffer(0) ]], unsigned int vid [[ vertex_id ]]) {
-    return float4(vertex_array[vid], 1.0);
-    }
-
-    fragment float4 fragment_main() {
-    return float4(1, 1, 1, 1);
-    }
-    """
-
     public init(mtkView: MTKView)
     {
         self.view = mtkView
@@ -40,9 +25,14 @@ public class Renderer : NSObject
         }
         self.commandQueue = cq
 
-        guard let library = try! self.view.device?.makeLibrary(source: shader, options: nil) else
+        let shaderLibPath = FileManager.default
+                                       .currentDirectoryPath +
+                            SHADERS_DIR_PATH +
+                            "/default.metallib"
+
+        guard let library = try! self.view.device?.makeLibrary(filepath: shaderLibPath) else
         {
-            fatalError("Shader compiling failed")
+            fatalError("No shader library!")
         }
         let vertexFunction   = library.makeFunction(name: "vertex_main")
         let fragmentFunction = library.makeFunction(name: "fragment_main")
