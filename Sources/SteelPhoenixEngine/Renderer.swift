@@ -1,6 +1,7 @@
 import MetalKit
 
-let SHADERS_DIR_PATH = "/Sources/Shaders"
+let SHADERS_DIR_LOCAL_PATH        = "/Sources/Shaders"
+let DEFAULT_SHADER_LIB_LOCAL_PATH = SHADERS_DIR_LOCAL_PATH + "/default.metallib"
 
 public class Renderer : NSObject
 {
@@ -8,11 +9,17 @@ public class Renderer : NSObject
     private let commandQueue:  MTLCommandQueue
     private let pipelineState: MTLRenderPipelineState
 
-    let vertexData: [Float] =
+    let vertexData: [SIMD3<Float>] =
     [
-         0.0,  1.0, 0.0,
-        -1.0, -1.0, 0.0,
-         1.0, -1.0, 0.0
+        // v0
+        [ 0.0,  1.0, 0.0 ], // position
+        [ 1.0,  0.0, 0.0 ], // color
+        // v1
+        [-1.0, -1.0, 0.0 ],
+        [ 0.0,  1.0, 0.0 ],
+        // v2
+        [ 1.0, -1.0, 0.0 ],
+        [ 0.0,  0.0, 1.0 ]
     ]
 
     public init(mtkView: MTKView)
@@ -27,8 +34,7 @@ public class Renderer : NSObject
 
         let shaderLibPath = FileManager.default
                                        .currentDirectoryPath +
-                            SHADERS_DIR_PATH +
-                            "/default.metallib"
+                            DEFAULT_SHADER_LIB_LOCAL_PATH
 
         guard let library = try! self.view.device?.makeLibrary(filepath: shaderLibPath) else
         {
@@ -37,10 +43,20 @@ public class Renderer : NSObject
         let vertexFunction   = library.makeFunction(name: "vertex_main")
         let fragmentFunction = library.makeFunction(name: "fragment_main")
 
+        let vertDesc = MTLVertexDescriptor()
+        vertDesc.attributes[0].format      = .float3
+        vertDesc.attributes[0].bufferIndex = 0
+        vertDesc.attributes[0].offset      = 0
+        vertDesc.attributes[1].format      = .float3
+        vertDesc.attributes[1].bufferIndex = 0
+        vertDesc.attributes[1].offset      = MemoryLayout<SIMD3<Float>>.stride
+        vertDesc.layouts[0].stride         = MemoryLayout<SIMD3<Float>>.stride * 2
+
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
         pipelineDescriptor.vertexFunction                  = vertexFunction
         pipelineDescriptor.fragmentFunction                = fragmentFunction
+        pipelineDescriptor.vertexDescriptor                = vertDesc
 
         guard let ps = try! self.view.device?.makeRenderPipelineState(descriptor: pipelineDescriptor) else
         {
@@ -54,7 +70,6 @@ public class Renderer : NSObject
         struct Wrapper { static var i = 0.0 }
         Wrapper.i = (Wrapper.i + 0.01).truncatingRemainder(dividingBy: 1.0)
 
-        self.view.clearColor = MTLClearColor(red: Wrapper.i, green: 0, blue: 0, alpha: 1)
         self.render()
     }
 
