@@ -13,7 +13,8 @@ struct VertexOut
     float3 color;
 };
 
-vertex VertexOut vertex_main(VertexIn vert [[ stage_in ]])
+vertex
+VertexOut vertex_main(VertexIn vert [[ stage_in ]])
 {
     VertexOut out;
     out.position = float4(vert.position, 1.0f);
@@ -21,7 +22,8 @@ vertex VertexOut vertex_main(VertexIn vert [[ stage_in ]])
     return out;
 }
 
-fragment float4 fragment_main(VertexOut frag [[ stage_in ]])
+fragment
+float4 fragment_main(VertexOut frag [[ stage_in ]])
 {
     return sqrt(float4(frag.color, 1.0));
 }

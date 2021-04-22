@@ -20,7 +20,7 @@ class AppDelegate: NSObject, NSApplicationDelegate
     private var window:   NSWindow?
     private var device:   MTLDevice?
     private var timer:    Timer?
-    private var renderer: Renderer?
+    private var mRenderer: Renderer?
 
     // Initialize the app
     func applicationDidFinishLaunching(_ aNotification: Notification)
@@ -49,11 +49,10 @@ class AppDelegate: NSObject, NSApplicationDelegate
         if device == nil { fatalError("NO GPU") }
 
         let view = MTKView(frame: rect, device: device)
-        self.renderer = Renderer(mtkView: view)
-        if renderer?.view != nil
+        mRenderer = Renderer(mtkView: view)
+        if mRenderer?.mView != nil
         {
-            window?.contentViewController?.view = renderer!.view
-            view.delegate = renderer
+            window?.contentViewController?.view = mRenderer!.mView
         }
         else
         {
