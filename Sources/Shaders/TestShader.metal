@@ -1,6 +1,13 @@
 #include <metal_stdlib>
 using namespace metal;
 
+struct UniformBufferObject
+{
+    float4x4 model;
+    float4x4 view;
+    float4x4 proj;
+};
+
 struct VertexIn
 {
     float3 position [[ attribute(0) ]];
@@ -14,10 +21,11 @@ struct VertexOut
 };
 
 vertex
-VertexOut vertex_main(VertexIn vert [[ stage_in ]])
+VertexOut vertex_main(VertexIn vert [[ stage_in ]],
+                      constant UniformBufferObject& ubo [[ buffer(1) ]])
 {
     VertexOut out;
-    out.position = float4(vert.position, 1.0f);
+    out.position = ubo.proj * ubo.view * ubo.model * float4(vert.position, 1.0f);
     out.color    = vert.color;
     return out;
 }

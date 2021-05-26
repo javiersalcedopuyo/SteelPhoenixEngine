@@ -1,7 +1,11 @@
 import MetalKit
+import SLA
 
 let SHADERS_DIR_LOCAL_PATH        = "/Sources/Shaders"
 let DEFAULT_SHADER_LIB_LOCAL_PATH = SHADERS_DIR_LOCAL_PATH + "/default.metallib"
+
+let VERTEX_BUFFER_INDEX  = 0
+let UNIFORM_BUFFER_INDEX = 1
 
 public class Renderer : NSObject
 {
@@ -12,6 +16,7 @@ public class Renderer : NSObject
 
     private let mIndexBuffer:   MTLBuffer?
 
+    // TODO: use an array of Vertex
     let vertexData: [SIMD3<Float>] =
     [
         // v0
@@ -53,10 +58,10 @@ public class Renderer : NSObject
 
         let vertDesc = MTLVertexDescriptor()
         vertDesc.attributes[0].format      = .float3
-        vertDesc.attributes[0].bufferIndex = 0
+        vertDesc.attributes[0].bufferIndex = VERTEX_BUFFER_INDEX
         vertDesc.attributes[0].offset      = 0
         vertDesc.attributes[1].format      = .float3
-        vertDesc.attributes[1].bufferIndex = 0
+        vertDesc.attributes[1].bufferIndex = VERTEX_BUFFER_INDEX
         vertDesc.attributes[1].offset      = MemoryLayout<SIMD3<Float>>.stride
         vertDesc.layouts[0].stride         = MemoryLayout<SIMD3<Float>>.stride * 2
 
@@ -94,14 +99,23 @@ public class Renderer : NSObject
 
     func render()
     {
-        let dataSize       = vertexData.count * MemoryLayout.size(ofValue: vertexData[0])
-        let vertexBuffer   = mView.device?.makeBuffer(bytes: vertexData, length: dataSize, options: [])
+        let dataSize       = vertexData.count * Vertex.size()
+        let vertexBuffer   = mView.device?.makeBuffer(bytes: vertexData,
+                                                      length: dataSize,
+                                                      options: [])
+
+        let tmpUBO = UniformBufferObject() // TODO: Calculate the MVP matrices
+        let uniformsSize   = tmpUBO.size()
+        let uniformBuffer  = mView.device?.makeBuffer(bytes: tmpUBO.asArray(),
+                                                      length: uniformsSize,
+                                                      options: [])
 
         let commandBuffer  = mCommandQueue.makeCommandBuffer()!
 
         let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: mView.currentRenderPassDescriptor!)
         commandEncoder?.setRenderPipelineState(mPipelineState)
-        commandEncoder?.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        commandEncoder?.setVertexBuffer(vertexBuffer, offset: 0, index: VERTEX_BUFFER_INDEX)
+        commandEncoder?.setVertexBuffer(uniformBuffer, offset: 0, index: UNIFORM_BUFFER_INDEX)
 
         if mIndexBuffer != nil
         {
