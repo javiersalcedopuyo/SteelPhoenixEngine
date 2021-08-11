@@ -41,7 +41,7 @@ class AppDelegate: NSObject, NSApplicationDelegate
                           backing:     .buffered,
                           defer:       false)
 
-        window?.title = "Hello Triangle!"
+        window?.title = "Metal Renderer 🤘🏻"
         window?.contentViewController = ViewController()
         window?.makeKeyAndOrderFront(nil)
 
