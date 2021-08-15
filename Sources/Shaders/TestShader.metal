@@ -12,12 +12,14 @@ struct VertexIn
 {
     float3 position [[ attribute(0) ]];
     float3 color    [[ attribute(1) ]];
+    float3 texcoord [[ attribute(2) ]];
 };
 
 struct VertexOut
 {
     float4 position [[ position ]];
     float3 color;
+    float3 texcoord;
 };
 
 vertex
@@ -27,11 +29,14 @@ VertexOut vertex_main(VertexIn vert [[ stage_in ]],
     VertexOut out;
     out.position = ubo.proj * ubo.view * ubo.model * float4(vert.position, 1.0f);
     out.color    = vert.color;
+    out.texcoord = vert.texcoord;
     return out;
 }
 
 fragment
-float4 fragment_main(VertexOut frag [[ stage_in ]])
+float4 fragment_main(VertexOut        frag [[ stage_in   ]],
+                     texture2d<float> tex  [[ texture(0) ]],
+                     sampler          smp  [[ sampler(0) ]])
 {
-    return sqrt(float4(frag.color, 1.0));
+    return sqrt( tex.sample(smp, frag.texcoord.xy) );
 }

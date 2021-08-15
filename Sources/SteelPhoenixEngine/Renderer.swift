@@ -1,5 +1,9 @@
+import Foundation
 import MetalKit
 import SLA
+
+let ASSETS_DIR_LOCAL_PATH         = "/Assets"
+let TEXTURES_DIR_LOCAL_PATH       = ASSETS_DIR_LOCAL_PATH + "/Textures"
 
 let SHADERS_DIR_LOCAL_PATH        = "/Sources/Shaders"
 let DEFAULT_SHADER_LIB_LOCAL_PATH = SHADERS_DIR_LOCAL_PATH + "/default.metallib"
@@ -18,24 +22,34 @@ public class Renderer : NSObject
 
     private let mIndexBuffer:   MTLBuffer?
 
+    // TODO: Load textures on demand
+    private var mTexture:       MTLTexture?
+    // TODO: Pre-built collection?
+    private var mSamplerState:  MTLSamplerState?
+
     // TODO: use an array of Vertex
+    // TODO: Load from file
+    // TODO: Load models on demand
+    let indices: [UInt16] = [ 0, 1, 2, 2, 3, 0 ]
     let vertexData: [SIMD3<Float>] =
     [
         // v0
         [-0.5, -0.5, 0.0 ], // position
         [ 1.0,  0.0, 0.0 ], // color
+        [ 0.0,  1.0, 0.0 ], // UVs TODO: use just 2 floats
         // v1
         [ 0.5, -0.5, 0.0 ],
         [ 0.0,  1.0, 0.0 ],
+        [ 1.0,  1.0, 0.0 ],
         // v2
         [ 0.5,  0.5, 0.0 ],
         [ 0.0,  0.0, 1.0 ],
+        [ 1.0,  0.0, 0.0 ],
         // v3
         [-0.5,  0.5, 0.0 ],
         [ 1.0,  1.0, 1.0 ],
+        [ 0.0,  0.0, 0.0 ]
     ]
-
-    let indices: [UInt16] = [ 0, 1, 2, 2, 3, 0 ]
 
     public init(mtkView: MTKView)
     {
@@ -65,7 +79,11 @@ public class Renderer : NSObject
         vertDesc.attributes[1].format      = .float3
         vertDesc.attributes[1].bufferIndex = VERTEX_BUFFER_INDEX
         vertDesc.attributes[1].offset      = MemoryLayout<SIMD3<Float>>.stride
-        vertDesc.layouts[0].stride         = MemoryLayout<SIMD3<Float>>.stride * 2
+        // TODO: Use float2
+        vertDesc.attributes[2].format      = .float3
+        vertDesc.attributes[2].bufferIndex = VERTEX_BUFFER_INDEX
+        vertDesc.attributes[2].offset      = MemoryLayout<SIMD3<Float>>.stride * 2
+        vertDesc.layouts[0].stride         = MemoryLayout<SIMD3<Float>>.stride * 3
 
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
@@ -88,6 +106,10 @@ public class Renderer : NSObject
         }
 
         super.init()
+
+        self.loadTextures()
+        self.buildSamplerState()
+
         mView.delegate = self
     }
 
@@ -106,6 +128,7 @@ public class Renderer : NSObject
                                                     length: dataSize,
                                                     options: [])
 
+        // TODO: Use Constant Buffer?
         var ubo   = UniformBufferObject()
         ubo.model = Matrix4x4.identity()
         ubo.view  = Matrix4x4.lookAtLH(eye: Vector3(x:1, y:1, z:-1),
@@ -129,6 +152,8 @@ public class Renderer : NSObject
         commandEncoder?.setCullMode(.back)
         commandEncoder?.setVertexBuffer(vertexBuffer, offset: 0, index: VERTEX_BUFFER_INDEX)
         commandEncoder?.setVertexBuffer(uniformBuffer, offset: 0, index: UNIFORM_BUFFER_INDEX)
+        commandEncoder?.setFragmentTexture(mTexture, index: 0)
+        commandEncoder?.setFragmentSamplerState(mSamplerState, index: 0)
 
         if mIndexBuffer != nil
         {
@@ -150,6 +175,45 @@ public class Renderer : NSObject
 
         commandBuffer.present(mView.currentDrawable!)
         commandBuffer.commit()
+    }
+
+    private func loadTextures()
+    {
+        // TODO: Async?
+        let texturePath = FileManager.default
+                                     .currentDirectoryPath +
+                          TEXTURES_DIR_LOCAL_PATH +
+                          "/TestTexture1.png"
+
+        if FileManager.default.fileExists(atPath: texturePath)
+        {
+            let textureURL = NSURL.fileURL(withPath: texturePath)
+            let texLoader = MTKTextureLoader(device: mView.device!)
+            do
+            {
+                mTexture = try texLoader.newTexture(URL: textureURL)
+            }
+            catch
+            {
+                mTexture = nil
+            }
+        }
+        else
+        {
+            mTexture = nil
+        }
+    }
+
+    private func buildSamplerState()
+    {
+        // TODO: Read sampler descriptors from file?
+        let texSamplerDesc          = MTLSamplerDescriptor()
+        texSamplerDesc.minFilter    = .nearest
+        texSamplerDesc.magFilter    = .linear
+        texSamplerDesc.sAddressMode = .mirrorRepeat
+        texSamplerDesc.tAddressMode = .mirrorRepeat
+
+        mSamplerState = mView.device?.makeSamplerState(descriptor: texSamplerDesc)
     }
 }
 

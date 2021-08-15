@@ -6,3 +6,4 @@ xcuserdata/
 *.air
 *.metallib
 Package.resolved
+/.swiftpm
