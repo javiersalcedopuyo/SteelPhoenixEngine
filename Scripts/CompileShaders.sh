@@ -9,5 +9,5 @@ do
     xcrun metal -c $f -o $f.air
 done
 
-echo "Building default.metallib"
-xcrun metal *.air -o default.metallib
+echo "Building test.metallib"
+xcrun metal *.air -o test.metallib

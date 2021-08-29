@@ -19,7 +19,10 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "SteelPhoenixEngine",
-            dependencies: ["SLA"]),
+            dependencies: ["SLA"],
+            resources: [
+                .process("Assets"),
+                .process("Shaders")]),
         .testTarget(
             name: "SteelPhoenixEngineTests",
             dependencies: ["SteelPhoenixEngine"]),

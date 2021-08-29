@@ -2,12 +2,6 @@ import Foundation
 import MetalKit
 import SLA
 
-let ASSETS_DIR_LOCAL_PATH         = "/Assets"
-let TEXTURES_DIR_LOCAL_PATH       = ASSETS_DIR_LOCAL_PATH + "/Textures"
-
-let SHADERS_DIR_LOCAL_PATH        = "/Sources/Shaders"
-let DEFAULT_SHADER_LIB_LOCAL_PATH = SHADERS_DIR_LOCAL_PATH + "/default.metallib"
-
 let VERTEX_BUFFER_INDEX  = 0
 let UNIFORM_BUFFER_INDEX = 1
 
@@ -61,13 +55,16 @@ public class Renderer : NSObject
         }
         mCommandQueue = cq
 
-        let shaderLibPath = FileManager.default
-                                       .currentDirectoryPath +
-                            DEFAULT_SHADER_LIB_LOCAL_PATH
-
-        guard let library = try! mView.device?.makeLibrary(filepath: shaderLibPath) else
+        guard let shaderLibURL = Bundle.module.url(forResource:   "test",
+                                                   withExtension: "metallib")
+        else
         {
-            fatalError("No shader library!")
+            fatalError("Couldn't find shader metallib!")
+        }
+
+        guard let library = try! mView.device?.makeLibrary(URL: shaderLibURL) else
+        {
+            fatalError("Couldn't create shader library!")
         }
         let vertexFunction   = library.makeFunction(name: "vertex_main")
         let fragmentFunction = library.makeFunction(name: "fragment_main")
@@ -180,18 +177,15 @@ public class Renderer : NSObject
     private func loadTextures()
     {
         // TODO: Async?
-        let texturePath = FileManager.default
-                                     .currentDirectoryPath +
-                          TEXTURES_DIR_LOCAL_PATH +
-                          "/TestTexture1.png"
+        let textureURL = Bundle.module.url(forResource:   "TestTexture1",
+                                           withExtension: "png")
 
-        if FileManager.default.fileExists(atPath: texturePath)
+        if textureURL != nil
         {
-            let textureURL = NSURL.fileURL(withPath: texturePath)
             let texLoader = MTKTextureLoader(device: mView.device!)
             do
             {
-                mTexture = try texLoader.newTexture(URL: textureURL)
+                mTexture = try texLoader.newTexture(URL: textureURL!)
             }
             catch
             {
@@ -200,6 +194,7 @@ public class Renderer : NSObject
         }
         else
         {
+            print("No texture!")
             mTexture = nil
         }
     }
