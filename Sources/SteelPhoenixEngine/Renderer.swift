@@ -21,6 +21,8 @@ public class Renderer : NSObject
     // TODO: Pre-built collection?
     private var mSamplerState:  MTLSamplerState?
 
+    private var mDepthStencilState: MTLDepthStencilState?
+
     // TODO: use an array of Vertex
     // TODO: Load from file
     // TODO: Load models on demand
@@ -44,10 +46,31 @@ public class Renderer : NSObject
         [ 1.0,  1.0, 1.0 ],
         [ 0.0,  0.0, 0.0 ]
     ]
+    let vertexData2: [SIMD3<Float>] =
+    [
+        // v0
+        [-0.5, -0.5, 0.5 ], // position
+        [ 1.0,  0.0, 0.0 ], // color
+        [ 0.0,  1.0, 0.0 ], // UVs TODO: use just 2 floats
+        // v1
+        [ 0.5, -0.5, 0.5 ],
+        [ 0.0,  1.0, 0.0 ],
+        [ 1.0,  1.0, 0.0 ],
+        // v2
+        [ 0.5,  0.5, 0.5 ],
+        [ 0.0,  0.0, 1.0 ],
+        [ 1.0,  0.0, 0.0 ],
+        // v3
+        [-0.5,  0.5, 0.5 ],
+        [ 1.0,  1.0, 1.0 ],
+        [ 0.0,  0.0, 0.0 ]
+    ]
 
     public init(mtkView: MTKView)
     {
         mView = mtkView
+        mView.depthStencilPixelFormat = MTLPixelFormat.depth16Unorm
+        mView.clearDepth              = 1.0
 
         guard let cq = mView.device?.makeCommandQueue() else
         {
@@ -87,12 +110,19 @@ public class Renderer : NSObject
         pipelineDescriptor.vertexFunction                  = vertexFunction
         pipelineDescriptor.fragmentFunction                = fragmentFunction
         pipelineDescriptor.vertexDescriptor                = vertDesc
+        pipelineDescriptor.depthAttachmentPixelFormat      = mView.depthStencilPixelFormat
 
         guard let ps = try! mView.device?.makeRenderPipelineState(descriptor: pipelineDescriptor) else
         {
             fatalError("Couldn't create pipeline state")
         }
         mPipelineState = ps
+
+        let depthStencilDesc = MTLDepthStencilDescriptor()
+        depthStencilDesc.depthCompareFunction = .less
+        depthStencilDesc.isDepthWriteEnabled  = true
+
+        mDepthStencilState = mView.device?.makeDepthStencilState(descriptor: depthStencilDesc)
 
         mIndexBuffer = mView.device?.makeBuffer(bytes: indices,
                                                 length: indices.count * MemoryLayout.size(ofValue: indices[0]),
@@ -124,6 +154,9 @@ public class Renderer : NSObject
         let vertexBuffer = mView.device?.makeBuffer(bytes: vertexData,
                                                     length: dataSize,
                                                     options: [])
+        let vertexBuffer2 = mView.device?.makeBuffer(bytes: vertexData2,
+                                                    length: dataSize,
+                                                    options: [])
 
         // TODO: Use Constant Buffer?
         var ubo   = UniformBufferObject()
@@ -145,12 +178,32 @@ public class Renderer : NSObject
 
         let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: mView.currentRenderPassDescriptor!)
         commandEncoder?.setRenderPipelineState(mPipelineState)
+        commandEncoder?.setDepthStencilState(mDepthStencilState)
         commandEncoder?.setFrontFacing(.counterClockwise)
         commandEncoder?.setCullMode(.back)
         commandEncoder?.setVertexBuffer(vertexBuffer, offset: 0, index: VERTEX_BUFFER_INDEX)
         commandEncoder?.setVertexBuffer(uniformBuffer, offset: 0, index: UNIFORM_BUFFER_INDEX)
         commandEncoder?.setFragmentTexture(mTexture, index: 0)
         commandEncoder?.setFragmentSamplerState(mSamplerState, index: 0)
+
+        if mIndexBuffer != nil
+        {
+            commandEncoder?.drawIndexedPrimitives(type: .triangle,
+                                                  indexCount: 6,
+                                                  indexType: .uint16,
+                                                  indexBuffer: mIndexBuffer!,
+                                                  indexBufferOffset: 0)
+        }
+        else
+        {
+            print("WARNING: No index buffer!") // TODO: proper logging
+            commandEncoder?.drawPrimitives(type: .triangle,
+                                           vertexStart: 0,
+                                           vertexCount: vertexData.count / 2,
+                                           instanceCount: 1)
+        }
+
+        commandEncoder?.setVertexBuffer(vertexBuffer2, offset: 0, index: VERTEX_BUFFER_INDEX)
 
         if mIndexBuffer != nil
         {
