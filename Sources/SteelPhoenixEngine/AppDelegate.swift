@@ -17,9 +17,9 @@ class ViewController : NSViewController
 
 class AppDelegate: NSObject, NSApplicationDelegate
 {
-    private var window:   NSWindow?
-    private var device:   MTLDevice?
-    private var timer:    Timer?
+    private var mWindow:   NSWindow?
+    private var mWinDel:   WindowDelegate?
+    private var mDevice:   MTLDevice?
     private var mRenderer: Renderer?
 
     // Initialize the app
@@ -33,26 +33,29 @@ class AppDelegate: NSObject, NSApplicationDelegate
                               windowSize.width,
                               windowSize.height)
 
-        window = NSWindow(contentRect: rect,
-                          styleMask:   [.miniaturizable,
-                                        .closable,
-                                        .resizable,
-                                        .titled],
-                          backing:     .buffered,
-                          defer:       false)
+        mWinDel = WindowDelegate()
+        mWindow = NSWindow(contentRect: rect,
+                           styleMask:   [.miniaturizable,
+                                         .closable,
+                                         .resizable,
+                                         .titled],
+                           backing:     .buffered,
+                           defer:       false)
 
-        window?.title = "Metal Renderer 🤘🏻"
-        window?.contentViewController = ViewController()
-        window?.makeKeyAndOrderFront(nil)
+        mWindow?.title                 = "Metal Renderer 🤘🏻"
+        mWindow?.contentViewController = ViewController()
+        mWindow?.delegate              = mWinDel
 
-        self.device = MTLCreateSystemDefaultDevice()
-        if device == nil { fatalError("NO GPU") }
+        mWindow?.makeKeyAndOrderFront(nil)
 
-        let view = MTKView(frame: rect, device: device)
+        self.mDevice = MTLCreateSystemDefaultDevice()
+        if mDevice == nil { fatalError("NO GPU") }
+
+        let view = MTKView(frame: rect, device: mDevice)
         mRenderer = Renderer(mtkView: view)
         if mRenderer?.mView != nil
         {
-            window?.contentViewController?.view = mRenderer!.mView
+            mWindow?.contentViewController?.view = mRenderer!.mView
         }
         else
         {
