@@ -1,6 +1,7 @@
 import Foundation
 import MetalKit
 import SLA
+import SimpleLogs
 
 let VERTEX_BUFFER_INDEX  = 0
 let UNIFORM_BUFFER_INDEX = 1
@@ -129,7 +130,7 @@ public class Renderer : NSObject
                                                 options: [])
         if mIndexBuffer == nil
         {
-            print("WARNING: No index buffer!") // TODO: proper logging
+            SimpleLogs.ERROR("Failed creating index buffer!")
         }
 
         super.init()
@@ -196,7 +197,7 @@ public class Renderer : NSObject
         }
         else
         {
-            print("WARNING: No index buffer!") // TODO: proper logging
+            SimpleLogs.WARNING("No index buffer!")
             commandEncoder?.drawPrimitives(type: .triangle,
                                            vertexStart: 0,
                                            vertexCount: vertexData.count / 2,
@@ -215,7 +216,7 @@ public class Renderer : NSObject
         }
         else
         {
-            print("WARNING: No index buffer!") // TODO: proper logging
+            SimpleLogs.WARNING("No index buffer!")
             commandEncoder?.drawPrimitives(type: .triangle,
                                            vertexStart: 0,
                                            vertexCount: vertexData.count / 2,
@@ -247,7 +248,7 @@ public class Renderer : NSObject
         }
         else
         {
-            print("No texture!")
+            SimpleLogs.ERROR("Couldn't load texture!")
             mTexture = nil
         }
     }

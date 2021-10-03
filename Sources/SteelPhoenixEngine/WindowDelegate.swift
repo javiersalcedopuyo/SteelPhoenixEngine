@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import SimpleLogs
 
 class WindowDelegate : NSObject, NSWindowDelegate
 {
@@ -7,7 +8,7 @@ class WindowDelegate : NSObject, NSWindowDelegate
 
     func windowWillClose(_ notification: Notification)
     {
-        NSLog("CLOSING APP!")
+        SimpleLogs.INFO("Closing the app.")
         // TODO: Clean-up ?
         exit(0)
     }
