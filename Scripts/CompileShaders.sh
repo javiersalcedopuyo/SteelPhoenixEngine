@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd "$(dirname "$0")"
-cd ../Sources/Shaders
+cd ../Sources/SteelPhoenixEngine/Shaders
 
 for f in *.metal;
 do

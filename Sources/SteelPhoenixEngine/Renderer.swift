@@ -151,7 +151,7 @@ public class Renderer : NSObject
 
     func render()
     {
-        let dataSize     = vertexData.count * Vertex.size()
+        let dataSize     = vertexData.count * MemoryLayout<SIMD3<Float>>.size
         let vertexBuffer = mView.device?.makeBuffer(bytes: vertexData,
                                                     length: dataSize,
                                                     options: [])
