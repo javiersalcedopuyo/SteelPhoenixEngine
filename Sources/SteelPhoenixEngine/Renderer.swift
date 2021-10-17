@@ -94,16 +94,19 @@ public class Renderer : NSObject
         let fragmentFunction = library.makeFunction(name: "fragment_main")
 
         let vertDesc = MTLVertexDescriptor()
+        // Position
         vertDesc.attributes[0].format      = .float3
         vertDesc.attributes[0].bufferIndex = VERTEX_BUFFER_INDEX
         vertDesc.attributes[0].offset      = 0
+        // Color
         vertDesc.attributes[1].format      = .float3
         vertDesc.attributes[1].bufferIndex = VERTEX_BUFFER_INDEX
         vertDesc.attributes[1].offset      = MemoryLayout<SIMD3<Float>>.stride
-        // TODO: Use float2
-        vertDesc.attributes[2].format      = .float3
+        // UVs
+        vertDesc.attributes[2].format      = .float2
         vertDesc.attributes[2].bufferIndex = VERTEX_BUFFER_INDEX
         vertDesc.attributes[2].offset      = MemoryLayout<SIMD3<Float>>.stride * 2
+
         vertDesc.layouts[0].stride         = MemoryLayout<SIMD3<Float>>.stride * 3
 
         let pipelineDescriptor = MTLRenderPipelineDescriptor()

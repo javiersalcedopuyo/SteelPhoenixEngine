@@ -12,14 +12,14 @@ struct VertexIn
 {
     float3 position [[ attribute(0) ]];
     float3 color    [[ attribute(1) ]];
-    float3 texcoord [[ attribute(2) ]];
+    float2 texcoord [[ attribute(2) ]];
 };
 
 struct VertexOut
 {
     float4 position [[ position ]];
     float3 color;
-    float3 texcoord;
+    float2 texcoord;
 };
 
 vertex
