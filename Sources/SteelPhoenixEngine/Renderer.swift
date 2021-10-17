@@ -102,10 +102,14 @@ public class Renderer : NSObject
         vertDesc.attributes[1].format      = .float3
         vertDesc.attributes[1].bufferIndex = VERTEX_BUFFER_INDEX
         vertDesc.attributes[1].offset      = MemoryLayout<SIMD3<Float>>.stride
-        // UVs
-        vertDesc.attributes[2].format      = .float2
+        // TODO: Normals
+        vertDesc.attributes[2].format      = .float3
         vertDesc.attributes[2].bufferIndex = VERTEX_BUFFER_INDEX
-        vertDesc.attributes[2].offset      = MemoryLayout<SIMD3<Float>>.stride * 2
+        vertDesc.attributes[2].offset      = 0 // TODO: MemoryLayout<SIMD3<Float>>.stride
+        // UVs
+        vertDesc.attributes[3].format      = .float2
+        vertDesc.attributes[3].bufferIndex = VERTEX_BUFFER_INDEX
+        vertDesc.attributes[3].offset      = MemoryLayout<SIMD3<Float>>.stride * 2
 
         vertDesc.layouts[0].stride         = MemoryLayout<SIMD3<Float>>.stride * 3
 
