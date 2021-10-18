@@ -8,8 +8,11 @@ let UNIFORM_BUFFER_INDEX = 1
 
 let WORLD_UP = Vector3(x:0, y:1, z:0)
 
-let TEST_MODEL_NAME = "bunny"
-let TEST_MODEL_EXTENSION = "obj"
+let TEST_MODEL_NAME        = "viking_room"
+let TEST_MODEL_EXTENSION   = "obj"
+
+let TEST_TEXTURE_NAME      = "viking_room"
+let TEST_TEXTURE_EXTENSION = "png"
 
 public class Renderer : NSObject
 {
@@ -108,10 +111,13 @@ public class Renderer : NSObject
 
         // TODO: Use Constant Buffer?
         var ubo   = UniformBufferObject()
-        ubo.model = Matrix4x4.identity()
-        ubo.view  = Matrix4x4.lookAtLH(eye: Vector3(x:0, y:0.25, z:0.5),
+        ubo.model = Matrix4x4.makeRotation(radians: SLA.TAU * 0.75, axis: Vector4(x: 0, y: 1, z: 0, w:0)) *
+                    Matrix4x4.identity()
+
+        ubo.view  = Matrix4x4.lookAtLH(eye: Vector3(x:-1, y:2, z:-2.5),
                                        target: Vector3.zero(),
                                        upAxis: WORLD_UP)
+
         ubo.proj  = Matrix4x4.perspectiveLH(fovy: SLA.deg2rad(45.0),
                                             aspectRatio: Float(mView.frame.width / mView.frame.height),
                                             near: 0.1,
@@ -155,8 +161,8 @@ public class Renderer : NSObject
     private func loadTextures()
     {
         // TODO: Async?
-        let textureURL = Bundle.module.url(forResource:   "TestTexture1",
-                                           withExtension: "png")
+        let textureURL = Bundle.module.url(forResource:   TEST_TEXTURE_NAME,
+                                           withExtension: TEST_TEXTURE_EXTENSION)
 
         if textureURL != nil
         {
