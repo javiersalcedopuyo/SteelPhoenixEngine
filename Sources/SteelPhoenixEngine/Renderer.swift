@@ -64,6 +64,7 @@ public class Renderer : NSObject
                                             withExtension: TEST_MODEL_EXTENSION)
         {
             mModel = Model(device: mtkView.device!, url: modelURL)
+            mModel?.flipHandedness()
         }
         else
         {
@@ -112,9 +113,9 @@ public class Renderer : NSObject
         // TODO: Use Constant Buffer?
         var ubo   = UniformBufferObject()
         ubo.model = Matrix4x4.makeRotation(radians: SLA.TAU * 0.75, axis: Vector4(x: 0, y: 1, z: 0, w:0)) *
-                    Matrix4x4.identity()
+                    (mModel?.mModelMatrix ?? Matrix4x4.identity())
 
-        ubo.view  = Matrix4x4.lookAtLH(eye: Vector3(x:-1, y:2, z:-2.5),
+        ubo.view  = Matrix4x4.lookAtLH(eye: Vector3(x:1, y:2, z:-2.5),
                                        target: Vector3.zero(),
                                        upAxis: WORLD_UP)
 
@@ -133,7 +134,7 @@ public class Renderer : NSObject
         let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: mView.currentRenderPassDescriptor!)
         commandEncoder?.setRenderPipelineState(mPipelineState)
         commandEncoder?.setDepthStencilState(mDepthStencilState)
-        commandEncoder?.setFrontFacing(.clockwise) // TODO: According to model?
+        commandEncoder?.setFrontFacing(mModel?.mWinding ?? .clockwise)
         commandEncoder?.setCullMode(.back)
         commandEncoder?.setVertexBuffer(vertexBuffer, offset: 0, index: VERTEX_BUFFER_INDEX)
         commandEncoder?.setVertexBuffer(uniformBuffer, offset: 0, index: UNIFORM_BUFFER_INDEX)

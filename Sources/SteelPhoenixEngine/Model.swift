@@ -1,10 +1,14 @@
 import MetalKit
 import SimpleLogs
+import SLA
 
 public class Model
 {
-    let mVertexDescriptor: MTLVertexDescriptor
-    let mMeshes:           [MTKMesh]
+    let mVertexDescriptor:         MTLVertexDescriptor
+    let mMeshes:                   [MTKMesh]
+
+    private(set) var mModelMatrix: Matrix4x4
+    private(set) var mWinding:     MTLWinding
 
     init(device: MTLDevice, url: URL)
     {
@@ -12,6 +16,27 @@ public class Model
         mMeshes = Self.loadMeshes(device: device,
                                   url: url,
                                   vertexDescriptor: mVertexDescriptor)
+
+        mModelMatrix = Matrix4x4.identity()
+        mWinding     = .clockwise
+    }
+
+    public func flipHandedness()
+    {
+        var mirror = Matrix4x4.identity()
+        mirror.set(col: 2, row: 2, val: -1)
+
+        mModelMatrix = mModelMatrix * mirror
+
+        switch mWinding
+        {
+            case .clockwise:
+                mWinding = .counterClockwise
+            case .counterClockwise:
+                mWinding = .clockwise
+            default:
+                break
+        }
     }
 
     static private func getNewVertexDescriptor() -> MTLVertexDescriptor
