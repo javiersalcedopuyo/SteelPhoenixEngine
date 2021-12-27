@@ -20,6 +20,10 @@ public class Renderer : NSObject
 
     private let mCommandQueue:  MTLCommandQueue
     private let mPipelineState: MTLRenderPipelineState
+    private var mDepthStencilState: MTLDepthStencilState?
+
+    private var mCameraMoveSensitivity: Float
+    private var mCameraPos: Vector3
 
     private var mModel:         Model?
     // TODO: Load textures on demand
@@ -27,7 +31,6 @@ public class Renderer : NSObject
     // TODO: Pre-built collection?
     private var mSamplerState:  MTLSamplerState?
 
-    private var mDepthStencilState: MTLDepthStencilState?
 
     public init(mtkView: MTKView)
     {
@@ -46,6 +49,7 @@ public class Renderer : NSObject
         }
         mCommandQueue = cq
 
+        // TODO: Extract initShaders() (Should be loaded alongside the assets? loadMaterials()?)
         guard let shaderLibURL = Bundle.module.url(forResource:   "test",
                                                    withExtension: "metallib")
         else
@@ -71,6 +75,7 @@ public class Renderer : NSObject
             SimpleLogs.ERROR("Couldn't load model '" + TEST_MODEL_NAME + "." + TEST_MODEL_EXTENSION + "'")
         }
 
+        // TODO: Extract initPSOs()
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
         pipelineDescriptor.vertexFunction                  = vertexFunction
@@ -90,12 +95,30 @@ public class Renderer : NSObject
 
         mDepthStencilState = mView.device?.makeDepthStencilState(descriptor: depthStencilDesc)
 
+        // TODO: Extract initCamera()
+        mCameraMoveSensitivity = 0.01
+        mCameraPos = Vector3.zero()
+
         super.init()
 
         self.loadTextures()
         self.buildSamplerState()
 
         mView.delegate = self
+    }
+
+    public func mouseDragCallback(deltaX: Float, deltaY: Float)
+    {
+        // TODO: Make it rotate instead
+        mCameraPos.x -= deltaX * mCameraMoveSensitivity
+        mCameraPos.y += deltaY * mCameraMoveSensitivity
+        SimpleLogs.INFO("New pos: " + mCameraPos.description)
+    }
+
+    public func scrollCallback(scroll: Float)
+    {
+        mCameraPos.z += scroll
+        SimpleLogs.INFO("New pos: " + mCameraPos.description)
     }
 
     public func update()
@@ -112,11 +135,11 @@ public class Renderer : NSObject
 
         // TODO: Use Constant Buffer?
         var ubo   = UniformBufferObject()
-        ubo.model = Matrix4x4.makeRotation(radians: SLA.TAU * 0.75, axis: Vector4(x: 0, y: 1, z: 0, w:0)) *
-                    (mModel?.mModelMatrix ?? Matrix4x4.identity())
+        ubo.model = mModel?.mModelMatrix ?? Matrix4x4.identity()
+        ubo.model = ubo.model / 10
 
-        ubo.view  = Matrix4x4.lookAtLH(eye: Vector3(x:1, y:2, z:-2.5),
-                                       target: Vector3.zero(),
+        ubo.view  = Matrix4x4.lookAtLH(eye: mCameraPos,
+                                       target: mCameraPos + Vector3(x:0, y:0, z:1),
                                        upAxis: WORLD_UP)
 
         ubo.proj  = Matrix4x4.perspectiveLH(fovy: SLA.deg2rad(45.0),

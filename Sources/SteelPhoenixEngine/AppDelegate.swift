@@ -1,5 +1,6 @@
 import Cocoa
 import MetalKit
+import SimpleLogs
 
 let WIDTH  = 800
 let HEIGHT = 600
@@ -15,9 +16,32 @@ class ViewController : NSViewController
     }
 }
 
+class MyWindow: NSWindow
+{
+    typealias MouseEventClosure  = (Float, Float) -> Void
+    typealias ScrollEventClosure = (Float) -> Void
+
+    public var onMouseDrag: MouseEventClosure?
+    public var onScroll:    ScrollEventClosure?
+
+    override func mouseDragged(with event: NSEvent)
+    {
+        let deltaX = Float( event.deltaX )
+        let deltaY = Float( event.deltaY )
+
+        self.onMouseDrag?(deltaX, deltaY)
+    }
+
+    override func scrollWheel(with event: NSEvent)
+    {
+        let scrollY = Float( event.deltaY )
+        self.onScroll?(scrollY)
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate
 {
-    private var mWindow:   NSWindow?
+    private var mWindow:   MyWindow?
     private var mWinDel:   WindowDelegate?
     private var mDevice:   MTLDevice?
     private var mRenderer: Renderer?
@@ -34,7 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate
                               windowSize.height)
 
         mWinDel = WindowDelegate()
-        mWindow = NSWindow(contentRect: rect,
+        mWindow = MyWindow(contentRect: rect,
                            styleMask:   [.miniaturizable,
                                          .closable,
                                          .resizable,
@@ -61,7 +85,14 @@ class AppDelegate: NSObject, NSApplicationDelegate
         {
             fatalError("NO METAL VIEW")
         }
+
+        // TODO: Extract setInputCallbacks()
+        func dragClosure(x: Float, y: Float) { mRenderer?.mouseDragCallback(deltaX: x, deltaY: y) }
+        func scrollClosure(s: Float) { mRenderer?.scrollCallback(scroll: s) }
+        mWindow?.onMouseDrag = dragClosure(x:y:)
+        mWindow?.onScroll    = scrollClosure(s:)
     }
+
 
     func applicationWillTerminate(_ aNotification: Notification)
     {
