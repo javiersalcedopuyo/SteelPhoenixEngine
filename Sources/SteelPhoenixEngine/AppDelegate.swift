@@ -7,22 +7,25 @@ let HEIGHT = 600
 
 class ViewController : NSViewController
 {
+    public var metalView: MTKView?
+
     override func loadView()
     {
         let rect = NSRect(x: 0, y: 0, width: WIDTH, height: HEIGHT)
-        view = NSView(frame: rect)
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.red.cgColor
+        view = self.metalView ?? NSView(frame: rect)
     }
 }
 
-class MyWindow: NSWindow
+class MyMetalView: MTKView
 {
-    typealias MouseEventClosure  = (Float, Float) -> Void
-    typealias ScrollEventClosure = (Float) -> Void
+    typealias MouseEventClosure   = (Float, Float) -> Void
+    typealias ScrollEventClosure  = (Float) -> Void
 
     public var onMouseDrag: MouseEventClosure?
     public var onScroll:    ScrollEventClosure?
+    public var onKeyDown:   KeyDownEventclosure?
+
+    override var acceptsFirstResponder: Bool { return true }
 
     override func mouseDragged(with event: NSEvent)
     {
@@ -41,7 +44,7 @@ class MyWindow: NSWindow
 
 class AppDelegate: NSObject, NSApplicationDelegate
 {
-    private var mWindow:   MyWindow?
+    private var mWindow:   NSWindow?
     private var mWinDel:   WindowDelegate?
     private var mDevice:   MTLDevice?
     private var mRenderer: Renderer?
@@ -57,8 +60,16 @@ class AppDelegate: NSObject, NSApplicationDelegate
                               windowSize.width,
                               windowSize.height)
 
+        self.mDevice = MTLCreateSystemDefaultDevice()
+        if mDevice == nil { fatalError("NO GPU") }
+
+        let view = MyMetalView(frame: rect, device: mDevice)
+        let viewController = ViewController()
+        viewController.metalView = view
+        view.becomeFirstResponder()
+
         mWinDel = WindowDelegate()
-        mWindow = MyWindow(contentRect: rect,
+        mWindow = NSWindow(contentRect: rect,
                            styleMask:   [.miniaturizable,
                                          .closable,
                                          .resizable,
@@ -67,15 +78,11 @@ class AppDelegate: NSObject, NSApplicationDelegate
                            defer:       false)
 
         mWindow?.title                 = "Metal Renderer 🤘🏻"
-        mWindow?.contentViewController = ViewController()
+        mWindow?.contentViewController = viewController
         mWindow?.delegate              = mWinDel
 
-        mWindow?.makeKeyAndOrderFront(nil)
+        mWindow?.makeKeyAndOrderFront(self)
 
-        self.mDevice = MTLCreateSystemDefaultDevice()
-        if mDevice == nil { fatalError("NO GPU") }
-
-        let view = MTKView(frame: rect, device: mDevice)
         mRenderer = Renderer(mtkView: view)
         if mRenderer?.mView != nil
         {
@@ -87,10 +94,11 @@ class AppDelegate: NSObject, NSApplicationDelegate
         }
 
         // TODO: Extract setInputCallbacks()
+        // TODO: keyPressCallback()
         func dragClosure(x: Float, y: Float) { mRenderer?.mouseDragCallback(deltaX: x, deltaY: y) }
         func scrollClosure(s: Float) { mRenderer?.scrollCallback(scroll: s) }
-        mWindow?.onMouseDrag = dragClosure(x:y:)
-        mWindow?.onScroll    = scrollClosure(s:)
+        view.onMouseDrag = dragClosure(x:y:)
+        view.onScroll    = scrollClosure(s:)
     }
 
 

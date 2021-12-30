@@ -8,10 +8,10 @@ let UNIFORM_BUFFER_INDEX = 1
 
 let WORLD_UP = Vector3(x:0, y:1, z:0)
 
-let TEST_MODEL_NAME        = "viking_room"
+let TEST_MODEL_NAME        = "bunny"
 let TEST_MODEL_EXTENSION   = "obj"
 
-let TEST_TEXTURE_NAME      = "viking_room"
+let TEST_TEXTURE_NAME      = "TestTexture1"
 let TEST_TEXTURE_EXTENSION = "png"
 
 public class Renderer : NSObject
@@ -68,7 +68,7 @@ public class Renderer : NSObject
                                             withExtension: TEST_MODEL_EXTENSION)
         {
             mModel = Model(device: mtkView.device!, url: modelURL)
-            mModel?.flipHandedness()
+            // mModel?.flipHandedness()
         }
         else
         {
@@ -112,13 +112,13 @@ public class Renderer : NSObject
         // TODO: Make it rotate instead
         mCameraPos.x -= deltaX * mCameraMoveSensitivity
         mCameraPos.y += deltaY * mCameraMoveSensitivity
-        SimpleLogs.INFO("New pos: " + mCameraPos.description)
+        // SimpleLogs.INFO("New pos: " + mCameraPos.description)
     }
 
     public func scrollCallback(scroll: Float)
     {
         mCameraPos.z += scroll
-        SimpleLogs.INFO("New pos: " + mCameraPos.description)
+        // SimpleLogs.INFO("New pos: " + mCameraPos.description)
     }
 
     public func update()
@@ -133,19 +133,19 @@ public class Renderer : NSObject
     {
         let vertexBuffer = mModel?.mMeshes[0].vertexBuffers[0].buffer
 
-        // TODO: Use Constant Buffer?
         var ubo   = UniformBufferObject()
         ubo.model = mModel?.mModelMatrix ?? Matrix4x4.identity()
-        ubo.model = ubo.model / 10
+        ubo.model = ubo.model * Matrix4x4.makeRotation(radians: TAU * 0.5, axis: Vector4(x: 0, y: 1, z: 0, w:0))
 
-        ubo.view  = Matrix4x4.lookAtLH(eye: mCameraPos,
+        // TODO: Use Constant Buffer?
+        ubo.view  = Matrix4x4.lookAtLH(eye:    mCameraPos,
                                        target: mCameraPos + Vector3(x:0, y:0, z:1),
                                        upAxis: WORLD_UP)
 
         ubo.proj  = Matrix4x4.perspectiveLH(fovy: SLA.deg2rad(45.0),
                                             aspectRatio: Float(mView.frame.width / mView.frame.height),
                                             near: 0.1,
-                                            far: 10.0)
+                                            far: 1000.0)
 
         let uniformsSize  = ubo.size()
         let uniformBuffer = mView.device?.makeBuffer(bytes: ubo.asArray(),
